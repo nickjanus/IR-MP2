@@ -14,7 +14,7 @@ public class BooleanDotProduct extends SimilarityBase {
      */
     @Override
     protected float score(BasicStats stats, float termFreq, float docLength) {
-        return 0;
+    	return 1; //score is called on each word in query for each document containing that word therefore return 1 always
     }
 
     @Override

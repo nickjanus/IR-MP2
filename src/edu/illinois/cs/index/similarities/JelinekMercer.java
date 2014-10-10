@@ -22,7 +22,12 @@ public class JelinekMercer extends LMSimilarity {
      */
     @Override
     protected float score(BasicStats stats, float termFreq, float docLength) {
-        return 0;
+        float score = 1, smoothing = 0;
+        float lambda = (float)0.5; //[0,1]
+        float alpha = lambda;
+        smoothing = (1 - lambda) * (termFreq/docLength) + lambda * model.computeProbability(stats);
+        score = (float) (Math.log(smoothing/alpha*model.computeProbability(stats)) + Math.log(alpha)); //approximation of |q|
+    	return score;
     }
 
     @Override
