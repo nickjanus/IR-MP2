@@ -1,24 +1,113 @@
 Please place your responses to the questions in this file.
-
-Boolean Dot Product
+1)
+Boolean Dot Product - straightforward, see comment.
 ===================
+protected float score(BasicStats stats, float termFreq, float docLength) {
+    	return 1; //score is called on each word in query for each document containing that word therefore return 1 always
+}
+MAP: 0.20682027649769577    
 
-
-TF-IDF Dot Product
+TF-IDF Dot Product - pretty simple implementation of the provided formula.
 ==================
+protected float score(BasicStats stats, float termFreq, float docLength) {
+        return  termFreq * (float) Math.log10((stats.getNumberOfDocuments() + 1)/stats.getDocFreq());
+}
+MAP: 0.1381063321385902
 
-
-Okapi BM25
+Okapi BM25 - terms should match those in equation. Equation for score is divided to improve readability and parameters are 
+specified as local variables.
 ==========
+protected float score(BasicStats stats, float termFreq, float docLength) {
+        float score = 1;
+    	float k1 = (float) 1.6; //[1.2,2]
+    	float k2 = 500; //(0,1000]
+    	float b  = (float) 0.95; //[0.75,1.2]
+    	float docFreq = stats.getDocFreq();
+    	float queryTermFreq = 1;
+    	float numDocs = stats.getNumberOfDocuments();
+    	
+    	score *= Math.log((numDocs - docFreq + 0.5)/(docFreq + 0.5));
+    	score *= ((k1 + 1)*termFreq)/(k1*(1 - b + b*(docLength/stats.getAvgFieldLength())) + termFreq);
+    	score *= ((k2 + 1)*queryTermFreq)/(k2 + queryTermFreq); //null op
+    	
+    	return score;
+}
+MAP: 0.21383811230585437
 
-
-Pivoted Length Normalization
+Pivoted Length Normalization - Also pretty cut and dry.
 ============================
+protected float score(BasicStats stats, float termFreq, float docLength) {
+        float score = 1;
+        float s = (float)0.5; //[0,1]
+        score *= (1 + Math.log(1 + Math.log(termFreq)))/(1 - s + s*(docLength/stats.getAvgFieldLength()));
+        score *= Math.log((stats.getNumberOfDocuments() + 1)/stats.getDocFreq());
+    	return score;
+}
+MAP: 0.22305427547363044
 
+Dirichlet Prior - Alpha isn't really necessary here, but makes it a little easier to read, as opposed to an
+arbitrary constant.  |q| is approximated as the set of intersecting terms between query and document.
 
-Dirichlet Prior
 ===============
+protected float score(BasicStats stats, float termFreq, float docLength) {    	
+    	float score = 1, smoothing = 0;
+        float mew = (float)2500; //>0
+        float alpha = mew/(mew + docLength);
+        smoothing = (termFreq + mew*model.computeProbability(stats))/(docLength + mew);
+        score = (float) (Math.log(smoothing/(alpha*model.computeProbability(stats))) + Math.log(alpha)); //approximation of |q|
+    	return score;
+}
+MAP: 0.15153396484041642
 
-
-Jelinek-Mercer
+Jelinek-Mercer - Alpha is significant here as it varies by document, same approximation for |q|.  
 ==============
+protected float score(BasicStats stats, float termFreq, float docLength) {
+        float score = 1, smoothing = 0;
+        float lambda = (float)0.3; //[0,1]
+        float alpha = lambda;
+        smoothing = (1 - lambda) * (termFreq/docLength) + lambda * model.computeProbability(stats);
+        score = (float) (Math.log(smoothing/(alpha*model.computeProbability(stats))) + Math.log(alpha)); //approximation of |q|
+    	return score;
+}
+MAP: 0.24591781874039953
+
+2)
+DP - MAP: 0.2706293736132447
+   - mew = 40
+OK - MAP: 0.26156255333674694
+   - b = 0.75
+   - k1 = 1.2
+   - k2 = 100
+
+3)
+The stemmer seems to have the greatest single impact on evaluation, which makes sense since it makes our lexicon much simpler
+and compact, aiding search.  The stop filter also provides a significant (albeit incremental) improvement to performance.  The lower
+case and length filters do not seem to make a significant impact once the other two are enabled, and only provide a minimal increase
+in performance when the other two are disabled (still resulting in < .08).  Clearly, choosing the right preprocessing is of critical
+importance in any information retrieval task.
+
+4) what is the major reason for such improvement?
+high frequency oscillators using transistors theoretical treatment and practical circuit details
+tfidf - Average Precision: 0.4
+bdp - Average Precision: 0.10666666666666666
+While bdp did perform better for some shorter queries, this query illustrates the tdidf's strengths.  For long queries, it
+is likely that many documents will have some of the words in the search query, leading to a lot of irrelevant documents
+with similar score, creating "noise" in bdp's results.  Tfidf captures not only the number of times words in the query occur
+within a document, but regularizes this with the number of documents over the frequency with which those words occur in the
+other documents of the corpus.  This adds additional information over bdp and removes some of the "noise" in bdp's results
+via the aforementioned regularization.
+
+ok - Average Precision: 0.06928571428571428
+This query does not so much illustrate the weakness of BM25 as it does the weakness in our evaluation.  BM25 leverages the count
+of a word in the query to reduce bias for repeated words, a feature we don't utilize due to our assumptions about uniqueness of query
+words.  Similarly, BM25 compensates for varying document lengths in relation to query words, which is not a significant issue as
+we are comparing abstracts in our evaluation.  In this simple setting, there is simply not as much information for BM25 to leverage.
+
+Query: control characteristics of sampling servo systems
+ok - Average Precision: 0.53
+dp - Average Precision: 0.2816666666666666
+This argument against a language model with the dp is similar to the one against BM25 above.  These words, all somewhat common (at
+least for physics abstracts) are likely within the corpus, defeating one benefit of a language model with a reference corpus.  Again,
+document length is not a significant factor in our corpus of abstracts, which might explain why mew has such a low optimal(ish) value.
+At the risk of sounding redundant, there is also somewhat of an information shortage here for LMDP.
+

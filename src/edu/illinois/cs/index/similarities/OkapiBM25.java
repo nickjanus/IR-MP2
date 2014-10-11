@@ -15,9 +15,9 @@ public class OkapiBM25 extends SimilarityBase {
     @Override
     protected float score(BasicStats stats, float termFreq, float docLength) {
         float score = 1;
-    	float k1 = (float) 1.6; //[1.2,2]
-    	float k2 = 500; //(0,1000]
-    	float b  = (float) 0.95; //[0.75,1.2]
+    	float k1 = (float) 1.2; //[1.2,2]
+    	float k2 = 100; //(0,1000]
+    	float b  = (float) 0.75; //[0.75,1.2]
     	float docFreq = stats.getDocFreq();
     	float queryTermFreq = 1;
     	float numDocs = stats.getNumberOfDocuments();

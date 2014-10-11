@@ -14,7 +14,7 @@ public class TFIDFDotProduct extends SimilarityBase {
      */
     @Override
     protected float score(BasicStats stats, float termFreq, float docLength) {
-        return  (termFreq * (float) Math.log10((stats.getNumberOfDocuments() + 1)/stats.getDocFreq()));
+        return  termFreq * (float) Math.log10((stats.getNumberOfDocuments() + 1)/stats.getDocFreq());
     }
 
     @Override
